@@ -10,6 +10,8 @@ get('/lighttp/products/food/:id/:data', function($id, $data) {
 	
 	echo "test ok $id - $data";
 	
+	echo $_GET['test'];
+	
 });
 
 run();

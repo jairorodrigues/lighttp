@@ -34,7 +34,8 @@ function run ()
 	if ($http_method == HttpMethod::GET) {
 		global $get_routes;
 		
-		$request_uri = $_SERVER['REQUEST_URI'];
+		$request_uri = parse_url(full_url());
+		$request_uri = $request_uri['path'];
 		
 		foreach ($get_routes as $route) {
 			if (preg_match($route->uri, $request_uri) == 1) {
@@ -51,6 +52,15 @@ function run ()
 			}
 		}
 	}
+}
+
+function full_url()
+{
+	$s = empty($_SERVER["HTTPS"]) ? '' : ($_SERVER["HTTPS"] == "on") ? "s" : "";
+	$sp = strtolower($_SERVER["SERVER_PROTOCOL"]);
+	$protocol = substr($sp, 0, strpos($sp, "/")) . $s;
+	$port = ($_SERVER["SERVER_PORT"] == "80") ? "" : (":".$_SERVER["SERVER_PORT"]);
+	return $protocol . "://" . $_SERVER['SERVER_NAME'] . $port . $_SERVER['REQUEST_URI'];
 }
 
 /**
