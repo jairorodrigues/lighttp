@@ -6,8 +6,23 @@ function get ($url, $callback)
 {
 	global $get_routes;
 	
-	$get_routes[$url] = $callback;
+	$url_pieces = explode('/', $url);
+	
+	for ($i=0; $i<sizeof($url_pieces); $i++) {
+		if (preg_match("/^:[A-Za-z0-9_]+$/", $url_pieces[$i]) == 1)
+			$url_pieces[$i] = "[A-Za-z0-9_]+";
+		else
+			$url_pieces[$i] = $url_pieces[$i];
+	}
+	
+	$route->uri = implode("/", $url_pieces);
+	$route->callback = $callback;
+	
+	$get_routes[] = "/^" . implode("/", $url_pieces) . "$/";
+	
+	echo  $get_routes[sizeof($get_routes) - 1];
 }
+
 
 function run ()
 {
@@ -16,15 +31,23 @@ function run ()
 	if ($http_method == HttpMethod::GET) {
 		global $get_routes;
 		
-		$callback = $get_routes[$_SERVER['REQUEST_URI']];
+		$request_uri = $_SERVER['REQUEST_URI'];
 		
-		$callback();
+		foreach ($get_routes as $route)
+			if (preg_match($route->uri, $request_uri) == 1) {
+				$callback = $route->callback;
+				
+				$request_uri_pieces = explode("/", $request_uri);
+				
+				$callback();
+			}
+		
+		
 	}
-	
 }
 
 /**
- * Métodos(ou verbos) do protocolo HTTP
+ * Mï¿½todos(ou verbos) do protocolo HTTP
  */
 class HttpMethod {
 	const GET = 'GET';
@@ -58,7 +81,7 @@ class HttpContentType {
 }
 
 /**
- * Versões do HTTP até o momento
+ * Versï¿½es do HTTP atï¿½ o momento
  */
 class HttpVersion {
 	const HTTP_1_0 = '1.0';
@@ -71,7 +94,7 @@ class HttpVersion {
 }
 
 /**
- * Relaciona todos os códigos de status definidos pelo protocolo
+ * Relaciona todos os cï¿½digos de status definidos pelo protocolo
  */
 class HttpStatus {
 
@@ -145,7 +168,7 @@ class HttpStatus {
 	/**
 	 * 'Reason Phrases' recomendadas, acesse os valores usando as constantes.
 	 * 	Ex:
-	 * 	 HttpStatus::$STATUSES[HttpStatus::OK] para a reason phrase do código de sucesso 200 OK
+	 * 	 HttpStatus::$STATUSES[HttpStatus::OK] para a reason phrase do cï¿½digo de sucesso 200 OK
 	 */
 	public static $STATUSES = array(
 		// INFORMATIONAL CODES
@@ -237,7 +260,7 @@ function setHttpResponseContentType ($mimeType) {
 }
 
 /**
- * Escreve na saída do php "ECHO" o json_encode do conteúdo.
+ * Escreve na saï¿½da do php "ECHO" o json_encode do conteï¿½do.
  * Converte o objeto para UTF-8 primeiramente.
  */
 function writeJsonResponse($object) {
@@ -247,31 +270,31 @@ function writeJsonResponse($object) {
 }
 
 /**
- * @return O valor do parâmetro GET ou NULL
+ * @return O valor do parï¿½metro GET ou NULL
  */
 function getHttpGetParam ($name) {
 	return getParamFromArray($name, $_GET);
 }
 
 /**
- * @return O valor do parâmetro POST ou NULL
+ * @return O valor do parï¿½metro POST ou NULL
  */
 function getHttpPostParam ($name) {
 	return getParamFromArray($name, $_POST);
 }
 
 /**
- * Retorna o método da requisição que está sendo tratada pelo PHP.
- * Se a requisição está vindo por GET/POST/DELETE etc...
+ * Retorna o mï¿½todo da requisiï¿½ï¿½o que estï¿½ sendo tratada pelo PHP.
+ * Se a requisiï¿½ï¿½o estï¿½ vindo por GET/POST/DELETE etc...
  */
 function getHttpRequestMethod () {
 	return $_SERVER['REQUEST_METHOD'];
 }
 
 /**
- * Pega o parâmetro que está vindo na requisição, não importa se a
- * requisição é um POST ou um GET, se o parâmetro existir em algum dos arrays
- * o valor será retornado. Se não retorna NULL
+ * Pega o parï¿½metro que estï¿½ vindo na requisiï¿½ï¿½o, nï¿½o importa se a
+ * requisiï¿½ï¿½o ï¿½ um POST ou um GET, se o parï¿½metro existir em algum dos arrays
+ * o valor serï¿½ retornado. Se nï¿½o retorna NULL
  */
 function getHttpParam ($name) {
 	return getHttpPostParam($name) != NULL ?
@@ -279,7 +302,7 @@ function getHttpParam ($name) {
 }
 
 /**
- * Obtem o valor do parâmetro que está no cabecalho da requisição
+ * Obtem o valor do parï¿½metro que estï¿½ no cabecalho da requisiï¿½ï¿½o
  */
 function getHttpHeader($name) {
 	$headers = apache_request_headers();
@@ -287,14 +310,14 @@ function getHttpHeader($name) {
 }
 
 /**
- * Obtem o valor do parâmetro da requisição convertido para double
+ * Obtem o valor do parï¿½metro da requisiï¿½ï¿½o convertido para double
  */
 function getHttpDoubleParam ($name) {
 	return doubleval(trim(getHttpParam($name)));
 }
 
 /**
- * Obtem o valor do parâmetro da requisição convertido para inteiro
+ * Obtem o valor do parï¿½metro da requisiï¿½ï¿½o convertido para inteiro
  */
 function getHttpIntegerParam ($name) {
 	return intval(trim(getHttpParam($name)));

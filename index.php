@@ -2,9 +2,9 @@
 
 include 'lib/lighttp.php';
 
-get('/lighttp/test', function() {
+get('/products/food/:id', function($id) {
 	
-	echo "test ok";
+	echo "test ok $id";
 	
 });
 
