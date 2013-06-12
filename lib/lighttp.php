@@ -1,11 +1,20 @@
 <?php
 
 $get_routes = array();
+$post_routes = array();
 
 function get ($url, $callback)
 {
-	global $get_routes;
-	
+	global $get_routes; put_on($get_routes, $url, $callback);
+}
+
+function post ($url, $callback)
+{
+	global $post_routes; put_on($post_routes, $url, $callback);
+}
+
+function put_on (&$routes, $url, $callback)
+{
 	$url_pieces = explode('/', $url);
 	
 	$route->params = array();
@@ -22,9 +31,7 @@ function get ($url, $callback)
 	$route->uri = '/^' . implode("\/", $url_pieces) . '$/';
 	$route->callback = $callback;
 	
-	$get_routes[] = $route;
-	
-	var_dump($get_routes);
+	$routes[] = $route;
 }
 
 function run ()
@@ -34,22 +41,31 @@ function run ()
 	if ($http_method == HttpMethod::GET) {
 		global $get_routes;
 		
-		$request_uri = parse_url(full_url());
-		$request_uri = $request_uri['path'];
+		match_current_request_with($get_routes);
+	}
+	else if ($http_method == HttpMethod::POST)  {
+		global $post_routes;
 		
-		foreach ($get_routes as $route) {
-			if (preg_match($route->uri, $request_uri) == 1) {
-				$callback = $route->callback;
-				
-				$request_uri_pieces = explode("/", $request_uri);
-				
-				$params = array();
-				
-				foreach($route->params as $params_index)
-					$params[] = $request_uri_pieces[$params_index];
+		match_current_request_with($post_routes);
+	}
+}
 
-				call_user_func_array($callback, $params);
-			}
+function match_current_request_with($routes) {
+	$request_uri = parse_url(full_url());
+	$request_uri = $request_uri['path'];
+	
+	foreach ($routes as $route) {
+		if (preg_match($route->uri, $request_uri) == 1) {
+			$callback = $route->callback;
+	
+			$request_uri_pieces = explode("/", $request_uri);
+	
+			$params = array();
+	
+			foreach($route->params as $params_index)
+				$params[] = $request_uri_pieces[$params_index];
+	
+			call_user_func_array($callback, $params);
 		}
 	}
 }
