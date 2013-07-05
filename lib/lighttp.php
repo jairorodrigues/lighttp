@@ -3,6 +3,8 @@
 $get_routes = array();
 $post_routes = array();
 
+$request_uri_params = array();
+
 function get ($url, $callback)
 {
 	global $get_routes; put_on($get_routes, $url, $callback);
@@ -13,6 +15,15 @@ function post ($url, $callback)
 	global $post_routes; put_on($post_routes, $url, $callback);
 }
 
+function param($parameter_name) {
+	global $request_uri_params;
+	
+	if (isset($request_uri_params[$parameter_name]))
+		return $request_uri_params[$parameter_name];
+	else
+		return getHttpParam($parameter_name);
+}
+
 function put_on (&$routes, $url, $callback)
 {
 	$url_pieces = explode('/', $url);
@@ -21,8 +32,14 @@ function put_on (&$routes, $url, $callback)
 	
 	for ($i=0; $i<sizeof($url_pieces); $i++) {
 		if (preg_match("/^:[A-Za-z0-9_]+$/", $url_pieces[$i]) == 1) {
+			
+			$param = new stdClass();
+			$param->index = $i;
+			$param->name = substr($url_pieces[$i], 1);
+			
+			$route->params[] = $param;
+			
 			$url_pieces[$i] = ".*?";
-			$route->params[] = $i;
 		}
 		else
 			$url_pieces[$i] = $url_pieces[$i];
@@ -54,18 +71,21 @@ function match_current_request_with($routes) {
 	$request_uri = parse_url(full_url());
 	$request_uri = $request_uri['path'];
 	
+	global $request_uri_params;
+	
 	foreach ($routes as $route) {
 		if (preg_match($route->uri, $request_uri) == 1) {
 			$callback = $route->callback;
-	
-			$request_uri_pieces = explode("/", $request_uri);
-	
+			
+			$request_uri_params = explode("/", $request_uri);
+			
 			$params = array();
-	
-			foreach($route->params as $params_index)
-				$params[] = $request_uri_pieces[$params_index];
-	
-			call_user_func_array($callback, $params);
+			
+			foreach($route->params as $param)
+				$request_uri_params[$param->name] =
+					$request_uri_params[$param->index];
+			
+			call_user_func($callback);
 		}
 	}
 }
@@ -332,6 +352,15 @@ function getHttpRequestMethod () {
 function getHttpParam ($name) {
 	return getHttpPostParam($name) != NULL ?
 			getHttpPostParam($name) : getHttpGetParam($name);
+}
+
+/**
+ * Dado uma chave e um array, ele retorna o valor associado a chave no array,
+ * ou retorna NULL, caso não exista a chave no array, invés de lançar o erro
+ * de indice não encontrado do PHP.
+ */
+function getParamFromArray ($key, $array) {
+	return isset($array[$key]) ? $array[$key] : NULL;
 }
 
 /**
