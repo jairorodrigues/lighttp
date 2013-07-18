@@ -1,32 +1,83 @@
 <?php
 
+date_default_timezone_set("America/Campo_Grande");
+
 include 'lib/lighttp.php';
 
-date_default_timezone_set('America/Campo_Grande');
-
-get('/lighttp/products/food/:id/:data', function() {
-
-	echo param('id') . ' - ' . param('data') . ' - ';
-
-	echo param('test') . " - " . param('test2');
-	
+get('/lighttp/bois', function () {
+	echo "bois";
 });
 
-post('/lighttp/products/food/:id/:data', function() {
-
-	echo param('id') . ' - ' . param('data') . ' - ';
-
-	echo $_POST['test'] . " - " . $_POST['test2'];
-
+get('/lighttp/fazenda/:fazendaId/bois', function () {
+	$fazendaId = param('fazendaId');
+	echo "todos os bois da fazenda {$fazendaId}!";
 });
 
-post('/lighttp/products/:id/:data', function($id, $data) {
-	
-	global $HTTP_RAW_POST_DATA;
-	
-	echo "test id $id - $data - ";
-	
-	echo $HTTP_RAW_POST_DATA;
+get('/lighttp/fazenda/:fazendaId/bois/:boiId', function () {
+
+	$fazendaId = param('fazendaId');
+	$boiId = param('boiId');
+
+	setHttpResponseContentType(HttpContentType::APPLICATION_JSON);
+
+	echo json_encode(array(
+		'id' => $boiId,
+		'raca' => 'Caracu',
+		'idade' => '3',
+		'fazenda' => array(
+			'id' => $fazendaId,
+			'nome' => 'Rancho Alegre'
+		)
+	));
+});
+
+get('/lighttp/index', function() {
+	echo 'get index';
+});
+
+post('/lighttp/index', function() {
+	echo 'post index';
+});
+
+get('/lighttp/with-params', function() {
+	echo 'get with-params ';
+	echo 'param1: ' . param('param1') . ' / ';
+	echo 'param2: ' . param('param2') . ' / ';
+});
+
+post('/lighttp/with-params', function() {
+	echo 'post with-params ';
+	echo 'param1: ' . param('param1') . ' / ';
+	echo 'param2: ' . param('param2') . ' / ';
+});
+
+get('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+	echo 'get with-url-params ';
+	echo 'farm_id: ' . param('farm_id') . ' / ';
+	echo 'cow_id: ' . param('cow_id') . ' / ';
+	echo 'param1: ' . param('param1') . ' / ';
+});
+
+post('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+	setHttpResponseStatus(HttpStatus::CREATED);
+
+	echo 'post with-url-params ';
+	echo 'farm_id: ' . param('farm_id') . ' / ';
+	echo 'cow_id: ' . param('cow_id') . ' / ';
+	echo 'param1: ' . param('param1') . ' / ';
+});
+
+put('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+	echo 'put with-url-params ';
+	echo 'farm_id: ' . param('farm_id') . ' / ';
+	echo 'cow_id: ' . param('cow_id') . ' / ';
+	echo 'param1: ' . param('param1') . ' / ';
+});
+
+delete('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+	echo 'delete with-url-params ';
+	echo 'farm_id: ' . param('farm_id') . ' / ';
+	echo 'cow_id: ' . param('cow_id') . ' / ';
 });
 
 run();

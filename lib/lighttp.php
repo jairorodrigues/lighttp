@@ -1,18 +1,28 @@
 <?php
 
-$getRoutes = array();
-$postRoutes = array();
+$lighttpRoutes = array(
+	HttpMethod::GET => array(),
+	HttpMethod::POST => array(),
+	HttpMethod::PUT => array(),
+	HttpMethod::DELETE => array()
+);
 
 $requestUriParams = array();
 
-function get ($url, $callback)
-{
-	global $getRoutes; putOn($getRoutes, $url, $callback);
+function get ($url, $callback) {
+	putOn(HttpMethod::GET, $url, $callback);
 }
 
-function post ($url, $callback)
-{
-	global $postRoutes; putOn($postRoutes, $url, $callback);
+function post ($url, $callback) {
+	putOn(HttpMethod::POST, $url, $callback);
+}
+
+function put ($url, $callback) {
+	putOn(HttpMethod::PUT, $url, $callback);
+}
+
+function delete ($url, $callback) {
+	putOn(HttpMethod::DELETE, $url, $callback);
 }
 
 function param($parameterName) {
@@ -24,8 +34,9 @@ function param($parameterName) {
 		return getHttpParam($parameterName);
 }
 
-function putOn (&$routes, $url, $callback)
-{
+function putOn ($method, $url, $callback) {
+	global $lighttpRoutes;
+
 	$urlPieces = explode('/', $url);
 	
 	$route->params = array();
@@ -48,23 +59,16 @@ function putOn (&$routes, $url, $callback)
 	$route->uri = '/^' . implode("\/", $urlPieces) . '$/';
 	$route->callback = $callback;
 	
-	$routes[] = $route;
+	$lighttpRoutes[$method][] = $route;
 }
 
 function run ()
 {
+	global $lighttpRoutes;
+
 	$httpMethod = getHttpRequestMethod();
-	
-	if ($httpMethod == HttpMethod::GET) {
-		global $getRoutes;
-		
-		matchCurrentRequestWith($getRoutes);
-	}
-	else if ($httpMethod == HttpMethod::POST)  {
-		global $postRoutes;
-		
-		matchCurrentRequestWith($postRoutes);
-	}
+
+	matchCurrentRequestWith($lighttpRoutes[$httpMethod]);
 }
 
 function matchCurrentRequestWith($routes) {
@@ -90,12 +94,52 @@ function matchCurrentRequestWith($routes) {
 	}
 }
 
+function getRequestMethodRoutes($httpMethod) {
+	switch ($httpMethod) {
+		case HttpMethod::GET:
+
+			global $getRoutes;
+			
+			return $getRoutes;
+
+			break;
+
+		case HttpMethod::POST:
+
+			global $postRoutes;
+			
+			return $postRoutes;
+
+			break;
+
+		case HttpMethod::PUT:
+
+			global $putRoutes;
+			
+			return $putRoutes;
+
+			break;
+
+		case HttpMethod::DELETE:
+
+			global $deleteRoutes;
+			
+			return $deleteRoutes;
+
+			break;
+	}
+}
+
 function fullUrl()
 {
 	$s = empty($_SERVER["HTTPS"]) ? '' : ($_SERVER["HTTPS"] == "on") ? "s" : "";
+	
 	$sp = strtolower($_SERVER["SERVER_PROTOCOL"]);
+	
 	$protocol = substr($sp, 0, strpos($sp, "/")) . $s;
+	
 	$port = ($_SERVER["SERVER_PORT"] == "80") ? "" : (":".$_SERVER["SERVER_PORT"]);
+	
 	return $protocol . "://" . $_SERVER['SERVER_NAME'] . $port . $_SERVER['REQUEST_URI'];
 }
 
@@ -341,7 +385,21 @@ function getHttpPostParam ($name) {
  * Se a requisição está vindo por GET/POST/DELETE etc...
  */
 function getHttpRequestMethod () {
-	return $_SERVER['REQUEST_METHOD'];
+
+	$method = $_SERVER['REQUEST_METHOD'];
+
+	if ($method == HttpMethod::POST) {
+
+		$_method = getHttpParam('_method');
+
+		if ($_method == HttpMethod::DELETE)
+			return HttpMethod::DELETE;
+		
+		if ($_method == HttpMethod::PUT)
+			return HttpMethod::PUT;
+	}
+
+	return $method;
 }
 
 /**
