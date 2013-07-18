@@ -1,51 +1,51 @@
 <?php
 
-$get_routes = array();
-$post_routes = array();
+$getRoutes = array();
+$postRoutes = array();
 
-$request_uri_params = array();
+$requestUriParams = array();
 
 function get ($url, $callback)
 {
-	global $get_routes; put_on($get_routes, $url, $callback);
+	global $getRoutes; putOn($getRoutes, $url, $callback);
 }
 
 function post ($url, $callback)
 {
-	global $post_routes; put_on($post_routes, $url, $callback);
+	global $postRoutes; putOn($postRoutes, $url, $callback);
 }
 
-function param($parameter_name) {
-	global $request_uri_params;
+function param($parameterName) {
+	global $requestUriParams;
 	
-	if (isset($request_uri_params[$parameter_name]))
-		return $request_uri_params[$parameter_name];
+	if (isset($requestUriParams[$parameterName]))
+		return $requestUriParams[$parameterName];
 	else
-		return getHttpParam($parameter_name);
+		return getHttpParam($parameterName);
 }
 
-function put_on (&$routes, $url, $callback)
+function putOn (&$routes, $url, $callback)
 {
-	$url_pieces = explode('/', $url);
+	$urlPieces = explode('/', $url);
 	
 	$route->params = array();
 	
-	for ($i=0; $i<sizeof($url_pieces); $i++) {
-		if (preg_match("/^:[A-Za-z0-9_]+$/", $url_pieces[$i]) == 1) {
+	for ($i=0; $i<sizeof($urlPieces); $i++) {
+		if (preg_match("/^:[A-Za-z0-9_]+$/", $urlPieces[$i]) == 1) {
 			
 			$param = new stdClass();
 			$param->index = $i;
-			$param->name = substr($url_pieces[$i], 1);
+			$param->name = substr($urlPieces[$i], 1);
 			
 			$route->params[] = $param;
 			
-			$url_pieces[$i] = ".*?";
+			$urlPieces[$i] = ".*?";
 		}
 		else
-			$url_pieces[$i] = $url_pieces[$i];
+			$urlPieces[$i] = $urlPieces[$i];
 	}
 	
-	$route->uri = '/^' . implode("\/", $url_pieces) . '$/';
+	$route->uri = '/^' . implode("\/", $urlPieces) . '$/';
 	$route->callback = $callback;
 	
 	$routes[] = $route;
@@ -53,44 +53,44 @@ function put_on (&$routes, $url, $callback)
 
 function run ()
 {
-	$http_method = getHttpRequestMethod();
+	$httpMethod = getHttpRequestMethod();
 	
-	if ($http_method == HttpMethod::GET) {
-		global $get_routes;
+	if ($httpMethod == HttpMethod::GET) {
+		global $getRoutes;
 		
-		match_current_request_with($get_routes);
+		matchCurrentRequestWith($getRoutes);
 	}
-	else if ($http_method == HttpMethod::POST)  {
-		global $post_routes;
+	else if ($httpMethod == HttpMethod::POST)  {
+		global $postRoutes;
 		
-		match_current_request_with($post_routes);
+		matchCurrentRequestWith($postRoutes);
 	}
 }
 
-function match_current_request_with($routes) {
-	$request_uri = parse_url(full_url());
-	$request_uri = $request_uri['path'];
+function matchCurrentRequestWith($routes) {
+	$requestUri = parse_url(fullUrl());
+	$requestUri = $requestUri['path'];
 	
-	global $request_uri_params;
+	global $requestUriParams;
 	
 	foreach ($routes as $route) {
-		if (preg_match($route->uri, $request_uri) == 1) {
+		if (preg_match($route->uri, $requestUri) == 1) {
 			$callback = $route->callback;
 			
-			$request_uri_params = explode("/", $request_uri);
+			$requestUriParams = explode("/", $requestUri);
 			
 			$params = array();
 			
 			foreach($route->params as $param)
-				$request_uri_params[$param->name] =
-					$request_uri_params[$param->index];
+				$requestUriParams[$param->name] =
+					$requestUriParams[$param->index];
 			
 			call_user_func($callback);
 		}
 	}
 }
 
-function full_url()
+function fullUrl()
 {
 	$s = empty($_SERVER["HTTPS"]) ? '' : ($_SERVER["HTTPS"] == "on") ? "s" : "";
 	$sp = strtolower($_SERVER["SERVER_PROTOCOL"]);
@@ -317,7 +317,7 @@ function setHttpResponseContentType ($mimeType) {
  * Converte o objeto para UTF-8 primeiramente.
  */
 function writeJsonResponse($object) {
-	utf8_encode_deep($object);
+	setHttpResponseContentType(HttpContentType::APPLICATION_JSON);
 	echo json_encode($object);
 	die();
 }

@@ -6,15 +6,15 @@ date_default_timezone_set('America/Campo_Grande');
 
 get('/lighttp/products/food/:id/:data', function() {
 
-	echo 'test ok ' . param('id') . ' - ' . param('data') . ' - ';
+	echo param('id') . ' - ' . param('data') . ' - ';
 
 	echo param('test') . " - " . param('test2');
 	
 });
 
-post('/lighttp/products/food/:id/:data', function($id, $data) {
+post('/lighttp/products/food/:id/:data', function() {
 
-	echo "test ok $id - $data - ";
+	echo param('id') . ' - ' . param('data') . ' - ';
 
 	echo $_POST['test'] . " - " . $_POST['test2'];
 
@@ -27,7 +27,6 @@ post('/lighttp/products/:id/:data', function($id, $data) {
 	echo "test id $id - $data - ";
 	
 	echo $HTTP_RAW_POST_DATA;
-	
 });
 
 run();
