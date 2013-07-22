@@ -9,6 +9,11 @@ $lighttpRoutes = array(
 	HttpMethod::DELETE => array()
 );
 
+/**
+ * Variável global para armazenar os parametros que vem
+ * pela URL da requisição. Ex: '/posts/:year/:month', o valor
+ * dos parametros year e month ficarão armazenado nesse array
+ */
 $requestUriParams = array();
 
 function get ($url, $callback) {
@@ -67,17 +72,14 @@ function recordRoute ($method, $url, $callback) {
 function run ()
 {
 	global $lighttpRoutes;
+	global $requestUriParams;
 
 	$httpMethod = getHttpRequestMethod();
 
-	matchCurrentRequestWith($lighttpRoutes[$httpMethod]);
-}
+	$routes = $lighttpRoutes[$httpMethod];
 
-function matchCurrentRequestWith($routes) {
 	$requestUri = parse_url(fullUrl());
 	$requestUri = $requestUri['path'];
-	
-	global $requestUriParams;
 	
 	foreach ($routes as $route) {
 		if (preg_match($route->uri, $requestUri) == 1) {
