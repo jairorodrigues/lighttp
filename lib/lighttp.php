@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Variável global para adicionar
+ */
 $lighttpRoutes = array(
 	HttpMethod::GET => array(),
 	HttpMethod::POST => array(),
@@ -10,19 +12,19 @@ $lighttpRoutes = array(
 $requestUriParams = array();
 
 function get ($url, $callback) {
-	putOn(HttpMethod::GET, $url, $callback);
+	recordRoute(HttpMethod::GET, $url, $callback);
 }
 
 function post ($url, $callback) {
-	putOn(HttpMethod::POST, $url, $callback);
+	recordRoute(HttpMethod::POST, $url, $callback);
 }
 
 function put ($url, $callback) {
-	putOn(HttpMethod::PUT, $url, $callback);
+	recordRoute(HttpMethod::PUT, $url, $callback);
 }
 
 function delete ($url, $callback) {
-	putOn(HttpMethod::DELETE, $url, $callback);
+	recordRoute(HttpMethod::DELETE, $url, $callback);
 }
 
 function param($parameterName) {
@@ -34,7 +36,7 @@ function param($parameterName) {
 		return getHttpParam($parameterName);
 }
 
-function putOn ($method, $url, $callback) {
+function recordRoute ($method, $url, $callback) {
 	global $lighttpRoutes;
 
 	$urlPieces = explode('/', $url);
@@ -161,7 +163,6 @@ class HttpMethod {
  * Constantes dos MIME-Types mais comuns
  */
 class HttpContentType {
-	
 	const TEXT_PLAIN = 'text/plain';
 	const TEXT_HTML = 'text/text';
 	const TEXT_CSS = 'text/css';
@@ -338,8 +339,8 @@ class HttpStatus {
 }
 
 /**
- * Dado um Status Code, seta no cabecalho da resposta o status e a reason phrase
- * de acordo com o protocolo
+ * Dado um Status Code, coloca no cabecalho da resposta o status e a reason phrase
+ * de acordo com o protocolo HTTP
  */
 function setHttpResponseStatus ($givenStatusCode) {
 	header(sprintf('HTTP/%s %s %s',
@@ -350,20 +351,10 @@ function setHttpResponseStatus ($givenStatusCode) {
 }
 
 /**
- * Seta o cabecalho de Content-Type com o mimeType informado
+ * Seta o cabecalho de Content-Type com o mime-type informado
  */
 function setHttpResponseContentType ($mimeType) {
 	header('Content-Type: ' . $mimeType);
-}
-
-/**
- * Escreve na saída do php "ECHO" o json_encode do conteúdo.
- * Converte o objeto para UTF-8 primeiramente.
- */
-function writeJsonResponse($object) {
-	setHttpResponseContentType(HttpContentType::APPLICATION_JSON);
-	echo json_encode($object);
-	die();
 }
 
 /**
@@ -389,6 +380,8 @@ function getHttpRequestMethod () {
 	$method = $_SERVER['REQUEST_METHOD'];
 
 	if ($method == HttpMethod::POST) {
+		// Se é POST, pode ser que tenha o parâmetro
+		// pedindo para que o POST seja tratado como um PUT ou DELETE
 
 		$_method = getHttpParam('_method');
 
