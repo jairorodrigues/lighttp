@@ -12,26 +12,42 @@ $lighttpRoutes = array(
 /**
  * Variável global para armazenar os parametros que vem
  * pela URL da requisição. Ex: '/posts/:year/:month', o valor
- * dos parametros year e month ficarão armazenado nesse array
+ * dos parametros year e month ficarão armazenado nesse array.
  */
-$requestUriParams = array();
+$requestUrlParams = array();
 
+/**
+ * Cadastra uma rota para requisições do tipo GET
+ */
 function get ($url, $callback) {
 	recordRoute(HttpMethod::GET, $url, $callback);
 }
 
+/**
+ * Cadastra uma rota para requisições do tipo POST
+ */
 function post ($url, $callback) {
 	recordRoute(HttpMethod::POST, $url, $callback);
 }
 
+/**
+ * Cadastra uma rota para requisições do tipo PUT
+ */
 function put ($url, $callback) {
 	recordRoute(HttpMethod::PUT, $url, $callback);
 }
 
+/**
+ * Cadastra uma rota para requisições do tipo DELETE
+ */
 function delete ($url, $callback) {
 	recordRoute(HttpMethod::DELETE, $url, $callback);
 }
 
+/**
+ * Retorna o valor do parâmetro identificado pelo nome do parâmetro.
+ * Os parâmetros podem ser os da requisições ou os de URL.
+ */
 function param($parameterName) {
 	global $requestUriParams;
 	
@@ -50,6 +66,8 @@ function recordRoute ($method, $url, $callback) {
 	
 	for ($i=0; $i<sizeof($urlPieces); $i++) {
 		if (preg_match("/^:[A-Za-z0-9_]+$/", $urlPieces[$i]) == 1) {
+
+			// TODO: Estudar alguma forma de melhorar essa lógica
 			
 			$param = new stdClass();
 			$param->index = $i;
@@ -69,73 +87,72 @@ function recordRoute ($method, $url, $callback) {
 	$lighttpRoutes[$method][] = $route;
 }
 
-function run ()
-{
-	global $lighttpRoutes;
-	global $requestUriParams;
+/**
+ * Trata a requisição atual e a despacha para a rota apropriada
+ */
+function run () {
 
-	$httpMethod = getHttpRequestMethod();
+	$routes = getRoutesForCurrentRequestMethod();
 
-	$routes = $lighttpRoutes[$httpMethod];
-
-	$requestUri = parse_url(fullUrl());
-	$requestUri = $requestUri['path'];
+	$requestUrl = getRequestPath();
 	
 	foreach ($routes as $route) {
-		if (preg_match($route->uri, $requestUri) == 1) {
-			$callback = $route->callback;
+		if (preg_match($route->uri, $requestUrl) == 1) {
+
+			parseParamsFor($route, $requestUrl);
 			
-			$requestUriParams = explode("/", $requestUri);
-			
-			$params = array();
-			
-			foreach($route->params as $param)
-				$requestUriParams[$param->name] =
-					$requestUriParams[$param->index];
-			
-			call_user_func($callback);
+			call_user_func($route->callback);
+
+			// TODO: Estudar mecanismos para tratamento de erro em +/-
+			// conformidade com o protocolo HTTP.
 		}
 	}
 }
 
-function getRequestMethodRoutes($httpMethod) {
-	switch ($httpMethod) {
-		case HttpMethod::GET:
+/**
+ * Retorna o array de rotas disponíveis para o metodo de requisição atual 
+ */
+function getRoutesForCurrentRequestMethod () {
+	global $lighttpRoutes;
 
-			global $getRoutes;
-			
-			return $getRoutes;
-
-			break;
-
-		case HttpMethod::POST:
-
-			global $postRoutes;
-			
-			return $postRoutes;
-
-			break;
-
-		case HttpMethod::PUT:
-
-			global $putRoutes;
-			
-			return $putRoutes;
-
-			break;
-
-		case HttpMethod::DELETE:
-
-			global $deleteRoutes;
-			
-			return $deleteRoutes;
-
-			break;
-	}
+	return $lighttpRoutes[getHttpRequestMethod()];
 }
 
-function fullUrl()
+/**
+ * Extrai todos os parâmetros da URL. Deixando-os disponíveis para serem
+ * acessados pela função param(key).
+ */
+function parseParamsFor ($route, $url) {
+	global $requestUriParams;
+
+	$requestUriParams = explode("/", $url);
+
+	$params = array();
+
+	foreach($route->params as $param)
+		$requestUriParams[$param->name] =
+			$requestUriParams[$param->index];
+}
+
+/**
+ * Retorna o caminho requisitado pela requisição http atual.
+ *
+ * Extemplo:
+ *  Na url "http://servidor/app/products/top10?since=2011".
+ *  o caminho(ou path) é apenas a string "app/products/top10"
+ */
+function getRequestPath() {
+	$requestUri = parse_url(getRequestFullUrl());
+	return $requestUri['path'];
+}
+
+/**
+ * Retorna a URL completa da requisição.
+ * Ex: "http://servidor/app/news/10"
+ */
+function getRequestFullUrl()
 {
+	// maior parte do código foi roubado de algum lugar do stackoverflow ;)
 	$s = empty($_SERVER["HTTPS"]) ? '' : ($_SERVER["HTTPS"] == "on") ? "s" : "";
 	
 	$sp = strtolower($_SERVER["SERVER_PROTOCOL"]);
@@ -143,8 +160,10 @@ function fullUrl()
 	$protocol = substr($sp, 0, strpos($sp, "/")) . $s;
 	
 	$port = ($_SERVER["SERVER_PORT"] == "80") ? "" : (":".$_SERVER["SERVER_PORT"]);
+
+	$queryString = isset($_SERVER["QUERY_STRING"]) ? ('?'. $_SERVER["QUERY_STRING"]) : NULL;
 	
-	return $protocol . "://" . $_SERVER['SERVER_NAME'] . $port . $_SERVER['REQUEST_URI'];
+	return $protocol . "://" . $_SERVER['SERVER_NAME'] . $port . $_SERVER['REQUEST_URI'] . $queryString;
 }
 
 /**
@@ -360,20 +379,6 @@ function setHttpResponseContentType ($mimeType) {
 }
 
 /**
- * @return O valor do parâmetro GET ou NULL
- */
-function getHttpGetParam ($name) {
-	return getParamFromArray($name, $_GET);
-}
-
-/**
- * @return O valor do parâmetro POST ou NULL
- */
-function getHttpPostParam ($name) {
-	return getParamFromArray($name, $_POST);
-}
-
-/**
  * Retorna o método da requisição que está sendo tratada pelo PHP.
  * Se a requisição está vindo por GET/POST/DELETE etc...
  */
@@ -396,6 +401,14 @@ function getHttpRequestMethod () {
 
 	return $method;
 }
+ 
+/**
+ * Obtem o valor do parâmetro que está no cabecalho da requisição
+ */
+function getHttpHeader($name) {
+	$headers = apache_request_headers();
+	return getParamFromArray($name, $headers);
+}
 
 /**
  * Pega o parâmetro que está vindo na requisição, não importa se a
@@ -408,32 +421,24 @@ function getHttpParam ($name) {
 }
 
 /**
+ * @return O valor do parâmetro GET ou NULL
+ */
+function getHttpGetParam ($name) {
+	return getParamFromArray($name, $_GET);
+}
+
+/**
+ * @return O valor do parâmetro POST ou NULL
+ */
+function getHttpPostParam ($name) {
+	return getParamFromArray($name, $_POST);
+}
+
+/**
  * Dado uma chave e um array, ele retorna o valor associado a chave no array,
  * ou retorna NULL, caso não exista a chave no array, invés de lançar o erro
  * de indice não encontrado do PHP.
  */
 function getParamFromArray ($key, $array) {
 	return isset($array[$key]) ? $array[$key] : NULL;
-}
-
-/**
- * Obtem o valor do parâmetro que está no cabecalho da requisição
- */
-function getHttpHeader($name) {
-	$headers = apache_request_headers();
-	return getParamFromArray($name, $headers);
-}
-
-/**
- * Obtem o valor do parâmetro da requisição convertido para double
- */
-function getHttpDoubleParam ($name) {
-	return doubleval(trim(getHttpParam($name)));
-}
-
-/**
- * Obtem o valor do parâmetro da requisição convertido para inteiro
- */
-function getHttpIntegerParam ($name) {
-	return intval(trim(getHttpParam($name)));
 }
