@@ -1,6 +1,9 @@
 <?php
+
+
+
 /**
- * Variável global para adicionar
+ * Variável global para armazenar as rotas
  */
 $lighttpRoutes = array(
 	HttpMethod::GET => array(),
@@ -20,28 +23,28 @@ $requestUrlParams = array();
  * Cadastra uma rota para requisições do tipo GET
  */
 function get ($url, $callback) {
-	recordRoute(HttpMethod::GET, $url, $callback);
+	storeLighttpRoute(HttpMethod::GET, $url, $callback);
 }
 
 /**
  * Cadastra uma rota para requisições do tipo POST
  */
 function post ($url, $callback) {
-	recordRoute(HttpMethod::POST, $url, $callback);
+	storeLighttpRoute(HttpMethod::POST, $url, $callback);
 }
 
 /**
  * Cadastra uma rota para requisições do tipo PUT
  */
 function put ($url, $callback) {
-	recordRoute(HttpMethod::PUT, $url, $callback);
+	storeLighttpRoute(HttpMethod::PUT, $url, $callback);
 }
 
 /**
  * Cadastra uma rota para requisições do tipo DELETE
  */
 function delete ($url, $callback) {
-	recordRoute(HttpMethod::DELETE, $url, $callback);
+	storeLighttpRoute(HttpMethod::DELETE, $url, $callback);
 }
 
 /**
@@ -49,26 +52,38 @@ function delete ($url, $callback) {
  * Os parâmetros podem ser os da requisições ou os de URL.
  */
 function param($parameterName) {
-	global $requestUriParams;
+	global $requestUrlParams;
 	
-	if (isset($requestUriParams[$parameterName]))
-		return $requestUriParams[$parameterName];
+	if (isset($requestUrlParams[$parameterName]))
+		return $requestUrlParams[$parameterName];
 	else
 		return getHttpParam($parameterName);
 }
 
-function recordRoute ($method, $url, $callback) {
+function storeLighttpRoute ($method, $url, $callback) {
 	global $lighttpRoutes;
+
+	# A idéia por trás do lighttp é criar uma matriz de rotas $lighttpRoutes
+	# e em cada posição armazenar um objeto $route.
+	#
+	# O objeto $route tem 3 campos:
+	#	'params': um array de objetos param;
+	#	'uri': uma expressão regular para fazer o match da URL da requisição
+	#	'callback': uma referência para a closure que deve ser executada quando
+	#	a requisição HTTP especificada acontecer.
+	#
+	# O objeto $param tem 2 campos:
+	#	'index': O indice da URL em que o parametro está
+	#	'name': Nome do parâmetro, utilizado par identifica-lo na função param()
+	#
 
 	$urlPieces = explode('/', $url);
 	
+	$route = new stdClass();
 	$route->params = array();
 	
 	for ($i=0; $i<sizeof($urlPieces); $i++) {
 		if (preg_match("/^:[A-Za-z0-9_]+$/", $urlPieces[$i]) == 1) {
-
-			// TODO: Estudar alguma forma de melhorar essa lógica
-			
 			$param = new stdClass();
 			$param->index = $i;
 			$param->name = substr($urlPieces[$i], 1);
@@ -123,15 +138,15 @@ function getRoutesForCurrentRequestMethod () {
  * acessados pela função param(key).
  */
 function parseParamsFor ($route, $url) {
-	global $requestUriParams;
+	global $requestUrlParams;
 
-	$requestUriParams = explode("/", $url);
+	$requestUrlParams = explode("/", $url);
 
 	$params = array();
 
 	foreach($route->params as $param)
-		$requestUriParams[$param->name] =
-			$requestUriParams[$param->index];
+		$requestUrlParams[$param->name] =
+			$requestUrlParams[$param->index];
 }
 
 /**
@@ -164,6 +179,90 @@ function getRequestFullUrl()
 	$queryString = isset($_SERVER["QUERY_STRING"]) ? ('?'. $_SERVER["QUERY_STRING"]) : NULL;
 	
 	return $protocol . "://" . $_SERVER['SERVER_NAME'] . $port . $_SERVER['REQUEST_URI'] . $queryString;
+}
+
+/**
+ * Dado um Status Code, coloca no cabecalho da resposta o status e a reason
+ * phrase de acordo com o protocolo HTTP
+ */
+function setHttpResponseStatus ($givenStatusCode) {
+	header(sprintf('HTTP/%s %s %s',
+		HttpVersion::DEFAULT_VERSION,
+		$givenStatusCode,
+		HttpStatus::$STATUSES[$givenStatusCode]
+	));
+}
+
+/**
+ * Seta o cabecalho de Content-Type com o mime-type informado
+ */
+function setHttpResponseContentType ($mimeType) {
+	header('Content-Type: ' . $mimeType);
+}
+
+/**
+ * Retorna o método da requisição que está sendo tratada pelo PHP.
+ * Se a requisição está vindo por GET/POST/DELETE etc...
+ */
+function getHttpRequestMethod () {
+
+	$method = $_SERVER['REQUEST_METHOD'];
+
+	if ($method == HttpMethod::POST) {
+		// Se é POST, pode ser que tenha o parâmetro
+		// pedindo para que o POST seja tratado como um PUT ou DELETE
+
+		$_method = getHttpParam('_method');
+
+		if ($_method == HttpMethod::DELETE)
+			return HttpMethod::DELETE;
+		
+		if ($_method == HttpMethod::PUT)
+			return HttpMethod::PUT;
+	}
+
+	return $method;
+}
+ 
+/**
+ * Obtem o valor do parâmetro que está no cabecalho da requisição
+ */
+function getHttpHeader($name) {
+	$headers = apache_request_headers();
+	return getParamFromArray($name, $headers);
+}
+
+/**
+ * Pega o parâmetro que está vindo na requisição, não importa se a
+ * requisição é um POST ou um GET, se o parâmetro existir em algum dos arrays
+ * o valor será retornado. Se não retorna NULL
+ */
+function getHttpParam ($name) {
+	return getHttpPostParam($name) != NULL ?
+			getHttpPostParam($name) : getHttpGetParam($name);
+}
+
+/**
+ * @return O valor do parâmetro GET ou NULL
+ */
+function getHttpGetParam ($name) {
+	return getParamFromArray($name, $_GET);
+}
+
+/**
+ * @return O valor do parâmetro POST ou NULL
+ */
+function getHttpPostParam ($name) {
+	return getParamFromArray($name, $_POST);
+}
+
+/**
+ * Dado uma chave e um array, ele retorna o valor associado a chave no array,
+ * ou retorna NULL, caso não exista a chave no array, invés de lançar o erro
+ * de indice não encontrado do PHP.
+ */
+function getParamFromArray ($key, $array) {
+	return isset($array[$key]) ? $array[$key] : NULL;
 }
 
 /**
@@ -357,88 +456,4 @@ class HttpStatus {
 		508 => 'Loop Detected',
 		511 => 'Network Authentication Required'
 	);
-}
-
-/**
- * Dado um Status Code, coloca no cabecalho da resposta o status e a reason phrase
- * de acordo com o protocolo HTTP
- */
-function setHttpResponseStatus ($givenStatusCode) {
-	header(sprintf('HTTP/%s %s %s',
-		HttpVersion::DEFAULT_VERSION,
-		$givenStatusCode,
-		HttpStatus::$STATUSES[$givenStatusCode]
-	));
-}
-
-/**
- * Seta o cabecalho de Content-Type com o mime-type informado
- */
-function setHttpResponseContentType ($mimeType) {
-	header('Content-Type: ' . $mimeType);
-}
-
-/**
- * Retorna o método da requisição que está sendo tratada pelo PHP.
- * Se a requisição está vindo por GET/POST/DELETE etc...
- */
-function getHttpRequestMethod () {
-
-	$method = $_SERVER['REQUEST_METHOD'];
-
-	if ($method == HttpMethod::POST) {
-		// Se é POST, pode ser que tenha o parâmetro
-		// pedindo para que o POST seja tratado como um PUT ou DELETE
-
-		$_method = getHttpParam('_method');
-
-		if ($_method == HttpMethod::DELETE)
-			return HttpMethod::DELETE;
-		
-		if ($_method == HttpMethod::PUT)
-			return HttpMethod::PUT;
-	}
-
-	return $method;
-}
- 
-/**
- * Obtem o valor do parâmetro que está no cabecalho da requisição
- */
-function getHttpHeader($name) {
-	$headers = apache_request_headers();
-	return getParamFromArray($name, $headers);
-}
-
-/**
- * Pega o parâmetro que está vindo na requisição, não importa se a
- * requisição é um POST ou um GET, se o parâmetro existir em algum dos arrays
- * o valor será retornado. Se não retorna NULL
- */
-function getHttpParam ($name) {
-	return getHttpPostParam($name) != NULL ?
-			getHttpPostParam($name) : getHttpGetParam($name);
-}
-
-/**
- * @return O valor do parâmetro GET ou NULL
- */
-function getHttpGetParam ($name) {
-	return getParamFromArray($name, $_GET);
-}
-
-/**
- * @return O valor do parâmetro POST ou NULL
- */
-function getHttpPostParam ($name) {
-	return getParamFromArray($name, $_POST);
-}
-
-/**
- * Dado uma chave e um array, ele retorna o valor associado a chave no array,
- * ou retorna NULL, caso não exista a chave no array, invés de lançar o erro
- * de indice não encontrado do PHP.
- */
-function getParamFromArray ($key, $array) {
-	return isset($array[$key]) ? $array[$key] : NULL;
 }
