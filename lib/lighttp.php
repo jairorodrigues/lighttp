@@ -93,7 +93,9 @@ function storeLighttpRoute ($method, $url, $callback) {
 			$urlPieces[$i] = $urlPieces[$i];
 	}
 	
-	$route->uri = '/^' . implode("\/", $urlPieces) . '$/';
+	// '/^' . 
+
+	$route->uri = '/' . implode("\/", $urlPieces) . '$/';
 	$route->callback = $callback;
 	
 	$lighttpRoutes[$method][] = $route;
@@ -128,7 +130,7 @@ function run () {
 		// exibir um 404.
 		
 		setHttpResponseStatus(HttpStatus::NOT_FOUND);
-		die("Recurso não encontrado");
+		die("Recurso \"{$requestUrl}\" nao encontrado");
 	}
 }
 
