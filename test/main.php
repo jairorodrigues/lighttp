@@ -7,7 +7,7 @@ require_once 'simpletest/web_tester.php';
 
 class LightHttpTest extends WebTestCase {
 
-	private static $LIGHTTP_HOME = "http://localhost/lighttp";
+	private static $LIGHTTP_HOME = "http://lighttp";
 
 	function testGetNoParamRoute() {
 		$this->get($this->url('/index'));

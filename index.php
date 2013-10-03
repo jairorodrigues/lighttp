@@ -4,16 +4,16 @@ date_default_timezone_set("America/Campo_Grande");
 
 include 'lib/lighttp.php';
 
-get('/lighttp/bois', function () {
+get('/bois', function () {
 	echo "bois";
 });
 
-get('/lighttp/fazenda/:fazendaId/bois', function () {
+get('/fazenda/:fazendaId/bois', function () {
 	$fazendaId = param('fazendaId');
 	echo "todos os bois da fazenda {$fazendaId}!";
 });
 
-get('/lighttp/fazenda/:fazendaId/bois/:boiId', function () {
+get('/fazenda/:fazendaId/bois/:boiId', function () {
 
 	$fazendaId = param('fazendaId');
 	$boiId = param('boiId');
@@ -31,34 +31,34 @@ get('/lighttp/fazenda/:fazendaId/bois/:boiId', function () {
 	));
 });
 
-get('/lighttp/index', function() {
+get('/index', function() {
 	echo 'get index';
 });
 
-post('/lighttp/index', function() {
+post('/index', function() {
 	echo 'post index';
 });
 
-get('/lighttp/with-params', function() {
+get('/with-params', function() {
 	echo 'get with-params ';
 	echo 'param1: ' . param('param1') . ' / ';
 	echo 'param2: ' . param('param2') . ' / ';
 });
 
-post('/lighttp/with-params', function() {
+post('/with-params', function() {
 	echo 'post with-params ';
 	echo 'param1: ' . param('param1') . ' / ';
 	echo 'param2: ' . param('param2') . ' / ';
 });
 
-get('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+get('/with-url-params/farm/:farm_id/cows/:cow_id', function() {
 	echo 'get with-url-params ';
 	echo 'farm_id: ' . param('farm_id') . ' / ';
 	echo 'cow_id: ' . param('cow_id') . ' / ';
 	echo 'param1: ' . param('param1') . ' / ';
 });
 
-post('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+post('/with-url-params/farm/:farm_id/cows/:cow_id', function() {
 	setHttpResponseStatus(HttpStatus::CREATED);
 
 	echo 'post with-url-params ';
@@ -67,14 +67,14 @@ post('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
 	echo 'param1: ' . param('param1') . ' / ';
 });
 
-put('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+put('/with-url-params/farm/:farm_id/cows/:cow_id', function() {
 	echo 'put with-url-params ';
 	echo 'farm_id: ' . param('farm_id') . ' / ';
 	echo 'cow_id: ' . param('cow_id') . ' / ';
 	echo 'param1: ' . param('param1') . ' / ';
 });
 
-delete('/lighttp/with-url-params/farm/:farm_id/cows/:cow_id', function() {
+delete('/with-url-params/farm/:farm_id/cows/:cow_id', function() {
 	echo 'delete with-url-params ';
 	echo 'farm_id: ' . param('farm_id') . ' / ';
 	echo 'cow_id: ' . param('cow_id') . ' / ';
