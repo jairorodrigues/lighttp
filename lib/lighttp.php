@@ -1,7 +1,4 @@
 <?php
-
-
-
 /**
  * Variável global para armazenar as rotas
  */
@@ -90,7 +87,7 @@ function storeLighttpRoute ($method, $url, $callback) {
 			
 			$route->params[] = $param;
 			
-			$urlPieces[$i] = ".*?";
+			$urlPieces[$i] = "([^\/]*)";
 		}
 		else
 			$urlPieces[$i] = $urlPieces[$i];
@@ -111,16 +108,27 @@ function run () {
 
 	$requestUrl = getRequestPath();
 	
-	foreach ($routes as $route) {
+	$routWasFound = false;
+	
+	foreach ($routes as $trash => $route) {
+		
 		if (preg_match($route->uri, $requestUrl) == 1) {
 
 			parseParamsFor($route, $requestUrl);
 			
 			call_user_func($route->callback);
-
-			// TODO: Estudar mecanismos para tratamento de erro em +/-
-			// conformidade com o protocolo HTTP.
+			
+			$routWasFound = true;
 		}
+	}
+	
+	if (!$routWasFound) {
+		// TODO: Estudar mecanismos para tratamento de erro em +/-
+		// conformidade com o protocolo HTTP. Ex: Quando não encontrar rota
+		// exibir um 404.
+		
+		setHttpResponseStatus(HttpStatus::NOT_FOUND);
+		die("Recurso não encontrado");
 	}
 }
 
