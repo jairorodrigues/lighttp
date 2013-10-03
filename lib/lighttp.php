@@ -150,6 +150,10 @@ function getRoutesForCurrentRequestMethod () {
 function parseParamsFor ($route, $url) {
 	global $requestUrlParams;
 
+	preg_match($route->uri, $url, $match);
+
+	$url = $match[0];
+
 	$requestUrlParams = explode("/", $url);
 
 	$params = array();
